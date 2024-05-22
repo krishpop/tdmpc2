@@ -57,4 +57,8 @@ TASK_SET = {
 		'mw-stick-pull', 'mw-sweep-into', 'mw-sweep', 'mw-window-open', 'mw-window-close',
 		'mw-bin-picking', 'mw-box-close', 'mw-door-lock', 'mw-door-unlock', 'mw-hand-insert',
 	],
+	'myo10': [
+		'myo-key-turn', 'myo-key-turn-hard', 'myo-obj-hold', 'myo-obj-hold-hard', 'myo-pen-twirl',
+		'myo-pen-twirl-hard', 'myo-pose', 'myo-pose-hard', 'myo-reach', 'myo-reach-hard'
+	]
 }
