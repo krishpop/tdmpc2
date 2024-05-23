@@ -36,3 +36,10 @@ class PixelWrapper(gym.Wrapper):
 	def step(self, action):
 		_, reward, done, info = self.env.step(action)
 		return self._get_obs(), reward, done, info
+
+
+class PixelWrapperDict(PixelWrapper):
+	def step(self, action):
+		state, reward, done, info = self.env.step(action)
+		obs = {"state": state, "rgb": self._get_obs()}
+		return obs, reward, done, info
