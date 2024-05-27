@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from common.buffer import Buffer
+from common.buffer import Buffer, RobomimicBuffer
 from trainer.base import Trainer
 
 
@@ -37,29 +37,36 @@ class OfflineTrainer(Trainer):
 				f'episode_reward+{self.cfg.tasks[task_idx]}': np.nanmean(ep_rewards),
 				f'episode_success+{self.cfg.tasks[task_idx]}': np.nanmean(ep_successes),})
 		return results
-				
-	def train(self):
-		"""Train a TD-MPC2 agent."""
-		assert self.cfg.multitask and self.cfg.task in {'mt30', 'mt80', 'myo10'}, \
-			'Offline training only supports multitask training with mt30, mt80, or myo10 task sets.'
 
+	def load_data(self):
 		# Load data
 		assert self.cfg.task in self.cfg.data_dir, \
 			f'Expected data directory {self.cfg.data_dir} to contain {self.cfg.task}, ' \
 			f'please double-check your config.'
-		fp = Path(os.path.join(self.cfg.data_dir, '*.pt'))
+
+		# Create buffer for sampling
+		_cfg = deepcopy(self.cfg)
+		if _cfg.task.startswith("mt"):
+			_cfg.episode_length = 101 if self.cfg.task == 'mt80' else 501
+			_cfg.buffer_size = 550_450_000 if self.cfg.task == 'mt80' else 345_690_000
+			self.buffer = Buffer(_cfg)
+			fp = Path(os.path.join(self.cfg.data_dir, '*.pt'))
+		elif _cfg.task.startswith("myo"):
+			_cfg.episode_length = 101
+			_cfg.buffer_size = 10_000_000
+			self.buffer = RobomimicBuffer(_cfg)
+			fp = Path(os.path.join(self.cfg.data_dir, '*.hdf5'))
+		_cfg.steps = _cfg.buffer_size
+		
 		fps = sorted(glob(str(fp)))
 		assert len(fps) > 0, f'No data found at {fp}'
 		print(f'Found {len(fps)} files in {fp}')
 	
-		# Create buffer for sampling
-		_cfg = deepcopy(self.cfg)
-		_cfg.episode_length = 101 if self.cfg.task == 'mt80' else 501
-		_cfg.buffer_size = 550_450_000 if self.cfg.task == 'mt80' else 345_690_000
-		_cfg.steps = _cfg.buffer_size
-		self.buffer = Buffer(_cfg)
 		for fp in tqdm(fps, desc='Loading data'):
-			td = torch.load(fp)
+			if _cfg.task.startswith("mt"):
+				td = torch.load(fp)
+			else:
+				td = self.buffer.load_hdf5(fp)
 			assert td.shape[1] == _cfg.episode_length, \
 				f'Expected episode length {td.shape[1]} to match config episode length {_cfg.episode_length}, ' \
 				f'please double-check your config.'
@@ -67,6 +74,13 @@ class OfflineTrainer(Trainer):
 				self.buffer.add(td[i])
 		assert self.buffer.num_eps == self.buffer.capacity, \
 			f'Buffer has {self.buffer.num_eps} episodes, expected {self.buffer.capacity} episodes.'
+				
+	def train(self):
+		"""Train a TD-MPC2 agent."""
+		assert self.cfg.multitask and self.cfg.task in {'mt30', 'mt80', 'myo10'}, \
+			'Offline training only supports multitask training with mt30, mt80, or myo10 task sets.'
+
+		self.load_data()
 		
 		print(f'Training agent for {self.cfg.steps} iterations...')
 		metrics = {}
