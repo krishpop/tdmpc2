@@ -35,8 +35,8 @@ class MyoSuiteWrapper(gym.Wrapper):
 		return self.env.unwrapped
 
 	def render(self, *args, **kwargs):
-		width = kwargs.get("width", 384)
-		height = kwargs.get("height", 384)
+		width = kwargs.get("width", 224)
+		height = kwargs.get("height", 224)
 		return self.env.sim.renderer.render_offscreen(
 			width=width, height=height, camera_id=self.camera_id
 		).copy()

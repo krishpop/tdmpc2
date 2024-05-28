@@ -105,25 +105,55 @@ class Buffer():
 
 
 class RobomimicBuffer(Buffer):
+    def __init__(self, cfg, use_buffer=True):
+        super().__init__(cfg)
+        self.use_buffer = use_buffer
+        self.hdf5_path = cfg.hdf5_path
+        if self.use_buffer:
+            self._buffer = None
+
     def get_episode(self, episode_id):
         """Retrieve a TensorDict for a specific episode."""
         return self._buffer.storage[self._buffer.storage["episode"] == episode_id]
 
-    def save_hdf5(self, path): 
-        with h5py.File(path, "w") as f:
-            f.create_group("data")
-            for episode_id in range(self.num_eps):
-                episode_td = self.get_episode(episode_id)
-                # Convert TensorDict to numpy and save to HDF5
-                f.create_group(f"data/demo_{episode_id}")
-                f[f"data/demo_{episode_id}"].attrs["num_samples"] = len(episode_td)
-                for key, value in episode_td.items():
-                    if isinstance(value, TensorDict):
-                        f.create_group(f"data/demo_{episode_id}/{key}")
-                        for sub_key, sub_value in value.items():
-                            f.create_dataset(f"data/demo_{episode_id}/{key}/{sub_key}", data=sub_value.cpu().numpy())
-                    else:
-                        f.create_dataset(f"data/demo_{episode_id}/{key}", data=value.cpu().numpy())
+    def save_hdf5(self, episode_td): 
+        episode_id = self._num_eps - 1
+        with h5py.File(self.hdf5_path, "a") as f:
+            if "data" not in f:
+                grp = f.create_group("data")
+            else:
+                grp = f["data"]
+
+            # Convert TensorDict to numpy and save to HDF5
+            f.create_group(f"data/demo_{episode_id}")
+            f[f"data/demo_{episode_id}"].attrs["num_samples"] = len(episode_td)
+            for key, value in episode_td.items():
+                if isinstance(value, TensorDict):
+                    f.create_group(f"data/demo_{episode_id}/{key}")
+                    for sub_key, sub_value in value.items():
+                        f.create_dataset(f"data/demo_{episode_id}/{key}/{sub_key}", data=sub_value.cpu().numpy())
+                else:
+                    f.create_dataset(f"data/demo_{episode_id}/{key}", data=value.cpu().numpy())
+            return len(grp)
+
+    def add(self, td):
+        """Add an episode to the buffer and optionally save to HDF5."""
+        td['episode'] = torch.ones_like(td['reward'], dtype=torch.int64) * self._num_eps
+        if self.use_buffer:
+            if self._num_eps == 0:
+                self._buffer = self._init(td)
+            self._buffer.extend(td)
+        self._num_eps += 1
+
+        if self.hdf5_path:
+            if self.use_buffer:
+                episode_td = self.get_episode(self._num_eps - 1)
+            else:
+                episode_td = td
+            total_episodes = self.save_hdf5(episode_td)
+            return total_episodes
+
+        return self._num_eps
 
     def load_hdf5(self, path):
         transform = transforms.Compose([
@@ -169,4 +199,8 @@ class RobomimicBuffer(Buffer):
                         episode_td[key] = torch.tensor(episode_group[key][:], device=self._device)
                 episode_transitions = TensorDict(episode_td, batch_size=(num_samples,))
                 self.add(episode_transitions)
+
+data/um_eps):
+     to HDF5
+     1isode_transitions)
 
