@@ -105,9 +105,9 @@ class Buffer():
 
 
 class RobomimicBuffer(Buffer):
-    def __init__(self, cfg, use_buffer=True):
+    def __init__(self, cfg):
         super().__init__(cfg)
-        self.use_buffer = use_buffer
+        self.use_buffer = cfg.use_buffer
         self.hdf5_path = cfg.hdf5_path
         if self.use_buffer:
             self._buffer = None
@@ -199,8 +199,3 @@ class RobomimicBuffer(Buffer):
                         episode_td[key] = torch.tensor(episode_group[key][:], device=self._device)
                 episode_transitions = TensorDict(episode_td, batch_size=(num_samples,))
                 self.add(episode_transitions)
-
-data/um_eps):
-     to HDF5
-     1isode_transitions)
-
