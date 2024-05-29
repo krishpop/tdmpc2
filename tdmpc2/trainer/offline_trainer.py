@@ -53,7 +53,7 @@ class OfflineTrainer(Trainer):
 			fp = Path(os.path.join(self.cfg.data_dir, '*.pt'))
 		elif _cfg.task.startswith("myo"):
 			_cfg.episode_length = 101
-			_cfg.buffer_size = 10_000_000
+			_cfg.buffer_size = 500_000
 			self.buffer = RobomimicBuffer(_cfg)
 			fp = Path(os.path.join(self.cfg.data_dir, '*.hdf5'))
 		_cfg.steps = _cfg.buffer_size
@@ -64,16 +64,19 @@ class OfflineTrainer(Trainer):
 	
 		for fp in tqdm(fps, desc='Loading data'):
 			if _cfg.task.startswith("mt"):
-				td = torch.load(fp)
+				td = torch.load(fp) 
+				assert td.shape[1] == _cfg.episode_length, \
+					f'Expected episode length {td.shape[1]} to match config episode length {_cfg.episode_length}, ' \
+					f'please double-check your config.'
+				for i in range(len(td)):
+					self.buffer.add(td[i])
+				assert self.buffer.num_eps == self.buffer.capacity, \
+					f'Buffer has {self.buffer.num_eps} episodes, expected {self.buffer.capacity} episodes.'
 			else:
 				td = self.buffer.load_hdf5(fp)
-			assert td.shape[1] == _cfg.episode_length, \
-				f'Expected episode length {td.shape[1]} to match config episode length {_cfg.episode_length}, ' \
-				f'please double-check your config.'
-			for i in range(len(td)):
-				self.buffer.add(td[i])
-		assert self.buffer.num_eps == self.buffer.capacity, \
-			f'Buffer has {self.buffer.num_eps} episodes, expected {self.buffer.capacity} episodes.'
+				assert td.shape[1] == _cfg.episode_length, \
+					f'Expected episode length {td.shape[1]} to match config episode length {_cfg.episode_length}, ' \
+					f'please double-check your config.'
 				
 	def train(self):
 		"""Train a TD-MPC2 agent."""
