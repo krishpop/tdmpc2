@@ -162,25 +162,6 @@ class RobomimicBuffer(Buffer):
                         transforms.Resize((64, 64)),
                         transforms.ToTensor()
                     ])
-
-        max_vec_obs_dim = 0
-        max_action_dim = 0
-        for episode_id in range(len(f["data"])):
-            if "vec_obs" in f[f"data/demo_{episode_id}"]:
-                vec_obs_group = f[f"data/demo_{episode_id}/vec_obs"]
-                for vec_obs_key in vec_obs_group.keys():
-                    vec_obs_shape = vec_obs_group[vec_obs_key].shape
-                    if len(vec_obs_shape) > 1 and vec_obs_shape[1] > max_vec_obs_dim:
-                        max_vec_obs_dim = vec_obs_shape[1]
-            if "action" in f[f"data/demo_{episode_id}"]:
-                action_group = f[f"data/demo_{episode_id}/action"]
-                for action_key in action_group.keys():
-                    action_shape = action_group[action_key].shape
-                    if len(action_shape) > 1 and action_shape[1] > max_action_dim:
-                        max_action_dim = action_shape[1]
-
-        pad_vec_obs = transforms.Lambda(lambda x: F.pad(input=x, pad=(0, max_vec_obs_dim - x.shape[1]), mode='constant', value=0))
-        pad_action = transforms.Lambda(lambda x: F.pad(input=x, pad=(0, max_action_dim - x.shape[1]), mode='constant', value=0))
         with h5py.File(path, "r") as f:
             for episode_id in range(len(f["data"])):
                 episode_group = f[f"data/demo_{episode_id}"]
