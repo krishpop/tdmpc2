@@ -123,6 +123,7 @@ class RobomimicBuffer(Buffer):
                 grp = f.create_group("data")
             else:
                 grp = f["data"]
+                episode_id = len(grp.keys())
 
             # Convert TensorDict to numpy and save to HDF5
             f.create_group(f"data/demo_{episode_id}")
@@ -134,7 +135,7 @@ class RobomimicBuffer(Buffer):
                         f.create_dataset(f"data/demo_{episode_id}/{key}/{sub_key}", data=sub_value.cpu().numpy())
                 else:
                     f.create_dataset(f"data/demo_{episode_id}/{key}", data=value.cpu().numpy())
-            return len(grp)
+            return len(grp.keys())
 
     def add(self, td):
         """Add an episode to the buffer and optionally save to HDF5."""
