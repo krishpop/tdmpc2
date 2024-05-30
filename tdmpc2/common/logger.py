@@ -220,7 +220,7 @@ class Logger:
 		dmcontrol_reward = np.nanmean(dmcontrol_reward)
 		d['episode_reward+avg_dmcontrol'] = dmcontrol_reward
 		print(colored(f'  {"dmcontrol":<22}\tR: {dmcontrol_reward:.01f}', 'yellow', attrs=['bold']))
-		if cfg.task in ['myo10', 'myo5', 'myo5-hard']:
+		if cfg.task in ['myo10', 'myo5-easy', 'myo5-hard']:
 			myo_reward = np.nanmean(myo_reward)
 			myo_success = np.nanmean(myo_success)
 			d['episode_reward+avg_myo'] = myo_reward
