@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from tensordict.tensordict import TensorDict
 from torchrl.data.replay_buffers import ReplayBuffer, LazyTensorStorage
 from torchrl.data.replay_buffers.samplers import SliceSampler
-import torchvision.transforms as transforms
+import torchvision.transforms.v2 as transforms
 import numpy as np
 
 
@@ -161,22 +161,27 @@ class RobomimicBuffer(Buffer):
         transform = transforms.Compose([
                         transforms.ToPILImage(),
                         transforms.Resize((image_size, image_size)),
-                        transforms.ToTensor()
+                        transforms.PILToTensor()
                     ])
         with h5py.File(path, "r") as f:
             for episode_id in range(len(f["data"])):
                 episode_group = f[f"data/demo_{episode_id}"]
                 num_samples = episode_group.attrs["num_samples"]
+                if num_samples == 0: continue
                 episode_td = {}
                 for key in episode_group.keys():
                     if isinstance(episode_group[key], h5py.Group):
                         sub_dict = {}
                         for sub_key in episode_group[key].keys():
-                            if sub_key == 'fixed_image':
-                                sub_value = transform(episode_group[key][sub_key][:])
+                            if sub_key == 'fixed_camera':
+                                sub_value = torch.stack([transform(img) for img in episode_group[key][sub_key][:]], dim=0).to(self._device)
+                                if self.cfg.multitask:
+                                    sub_key = 'rgb'
                             elif sub_key == 'vec_obs' and pad_to_shape is not None:
                                 sub_value = episode_group[key][sub_key][:]
                                 sub_value = torch.tensor(np.pad(sub_value, pad_width=[(0,0), (0, pad_to_shape - sub_value.shape[1])]), device=self._device)
+                                if self.cfg.multitask:
+                                    sub_key = 'state'
                             else:
                                 sub_value = torch.tensor(episode_group[key][sub_key][:], device=self._device)
                             sub_dict[sub_key] = sub_value
@@ -185,5 +190,4 @@ class RobomimicBuffer(Buffer):
                         episode_td[key] = torch.tensor(episode_group[key][:], device=self._device)
                 episode_transitions = TensorDict(episode_td, batch_size=(num_samples,))
                 episode_transitions['task'] = torch.ones_like(episode_transitions['reward'], dtype=torch.int64) * task_id
-                if len(episode_transitions) > 0:
-                    self.add(episode_transitions)
+                self.add(episode_transitions)

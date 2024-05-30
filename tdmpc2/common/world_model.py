@@ -84,13 +84,13 @@ class WorldModel(nn.Module):
 		if isinstance(task, int):
 			task = torch.tensor([task], device=x.device)
 		emb = self._task_emb(task.long())
-		if x.ndim == 3:
+		if x.ndim == 5:
+			emb = emb.view(1, emb.shape[0], 1, emb.shape[1], 1).repeat(x.shape[0], 1, 1, 1, x.shape[-1])
+			return torch.cat([x, emb], dim=2)
+		elif x.ndim == 3:
 			emb = emb.unsqueeze(0).repeat(x.shape[0], 1, 1)
 		elif emb.shape[0] == 1:
 			emb = emb.repeat(x.shape[0], 1)
-		print(f"x type: {type(x)}, shape: {x.shape if isinstance(x, torch.Tensor) else 'N/A'}")
-		print(f"emb type: {type(emb)}, shape: {emb.shape if isinstance(emb, torch.Tensor) else 'N/A'}")
-
 		return torch.cat([x, emb], dim=-1)
 
 	def encode(self, obs, task):
@@ -99,6 +99,7 @@ class WorldModel(nn.Module):
 		This implementation assumes a single state-based observation.
 		"""
 		if self.cfg.multitask:
+			obs = obs[self.cfg.obs]
 			obs = self.task_emb(obs, task)
 		if self.cfg.obs == 'rgb' and obs.ndim == 5:
 			return torch.stack([self._encoder[self.cfg.obs](o) for o in obs])
