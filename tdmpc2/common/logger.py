@@ -196,6 +196,8 @@ class Logger:
 		dmcontrol_reward = []
 		metaworld_reward = []
 		metaworld_success = []
+		myo_success = []
+		myo_reward = []
 		for k, v in d.items():
 			if '+' not in k:
 				continue
@@ -209,9 +211,22 @@ class Logger:
 				elif k.startswith('episode_success'):
 					metaworld_success.append(v)
 					print(colored(f'  {task:<22}\tS: {v:.02f}', 'yellow'))
+			elif task in TASK_SET['myo10']: # Myo
+				if k.startswith('episode_reward'):
+					myo_reward.append(v)
+				elif k.startswith('episode_success'):
+					myo_success.append(v)
+					print(colored(f'  {task:<22}\tS: {v:.02f}', 'yellow'))
 		dmcontrol_reward = np.nanmean(dmcontrol_reward)
 		d['episode_reward+avg_dmcontrol'] = dmcontrol_reward
 		print(colored(f'  {"dmcontrol":<22}\tR: {dmcontrol_reward:.01f}', 'yellow', attrs=['bold']))
+		if cfg.task in ['myo10', 'myo5', 'myo5-hard']:
+			myo_reward = np.nanmean(myo_reward)
+			myo_success = np.nanmean(myo_success)
+			d['episode_reward+avg_myo'] = myo_reward
+			d['episode_success+avg_myo'] = myo_success
+			print(colored(f'  {"myo":<22}\tR: {myo_reward:.01f}', 'yellow', attrs=['bold']))
+			print(colored(f'  {"myo":<22}\tS: {myo_success:.02f}', 'yellow', attrs=['bold']))
 		if cfg.task == 'mt80':
 			metaworld_reward = np.nanmean(metaworld_reward)
 			metaworld_success = np.nanmean(metaworld_success)
