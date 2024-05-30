@@ -88,6 +88,9 @@ class WorldModel(nn.Module):
 			emb = emb.unsqueeze(0).repeat(x.shape[0], 1, 1)
 		elif emb.shape[0] == 1:
 			emb = emb.repeat(x.shape[0], 1)
+		print(f"x type: {type(x)}, shape: {x.shape if isinstance(x, torch.Tensor) else 'N/A'}")
+		print(f"emb type: {type(emb)}, shape: {emb.shape if isinstance(emb, torch.Tensor) else 'N/A'}")
+
 		return torch.cat([x, emb], dim=-1)
 
 	def encode(self, obs, task):

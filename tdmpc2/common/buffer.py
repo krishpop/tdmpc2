@@ -5,6 +5,7 @@ from tensordict.tensordict import TensorDict
 from torchrl.data.replay_buffers import ReplayBuffer, LazyTensorStorage
 from torchrl.data.replay_buffers.samplers import SliceSampler
 import torchvision.transforms as transforms
+import numpy as np
 
 
 class Buffer():
@@ -83,7 +84,7 @@ class Buffer():
         Prepare a sampled batch for training (post-processing).
         Expects `td` to be a TensorDict with batch size TxB.
         """
-        obs = td['obs']
+        obs = td['obs'] # ['fixed_camera']
         action = td['action'][1:]
         reward = td['reward'][1:].unsqueeze(-1)
         task = td['task'][0] if 'task' in td.keys() else None
@@ -156,10 +157,10 @@ class RobomimicBuffer(Buffer):
 
         return self._num_eps
 
-    def load_hdf5(self, path):
+    def load_hdf5(self, path, image_size=64, pad_to_shape=None, task_id=None):
         transform = transforms.Compose([
                         transforms.ToPILImage(),
-                        transforms.Resize((64, 64)),
+                        transforms.Resize((image_size, image_size)),
                         transforms.ToTensor()
                     ])
         with h5py.File(path, "r") as f:
@@ -173,6 +174,9 @@ class RobomimicBuffer(Buffer):
                         for sub_key in episode_group[key].keys():
                             if sub_key == 'fixed_image':
                                 sub_value = transform(episode_group[key][sub_key][:])
+                            elif sub_key == 'vec_obs' and pad_to_shape is not None:
+                                sub_value = episode_group[key][sub_key][:]
+                                sub_value = torch.tensor(np.pad(sub_value, pad_width=[(0,0), (0, pad_to_shape - sub_value.shape[1])]), device=self._device)
                             else:
                                 sub_value = torch.tensor(episode_group[key][sub_key][:], device=self._device)
                             sub_dict[sub_key] = sub_value
@@ -180,4 +184,6 @@ class RobomimicBuffer(Buffer):
                     else:
                         episode_td[key] = torch.tensor(episode_group[key][:], device=self._device)
                 episode_transitions = TensorDict(episode_td, batch_size=(num_samples,))
-                self.add(episode_transitions)
+                episode_transitions['task'] = torch.ones_like(episode_transitions['reward'], dtype=torch.int64) * task_id
+                if len(episode_transitions) > 0:
+                    self.add(episode_transitions)

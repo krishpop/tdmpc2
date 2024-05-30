@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from common.buffer import Buffer, RobomimicBuffer
 from trainer.base import Trainer
-
+from common.__init__ import TASK_SET
 
 class OfflineTrainer(Trainer):
 	"""Trainer class for multi-task offline TD-MPC2 training."""
@@ -51,18 +51,22 @@ class OfflineTrainer(Trainer):
 			_cfg.buffer_size = 550_450_000 if self.cfg.task == 'mt80' else 345_690_000
 			self.buffer = Buffer(_cfg)
 			fp = Path(os.path.join(self.cfg.data_dir, '*.pt'))
+			fps = sorted(glob(str(fp)))
 		elif _cfg.task.startswith("myo"):
 			_cfg.episode_length = 101
-			_cfg.buffer_size = 500_000
+			_cfg.buffer_size = 50_000
 			self.buffer = RobomimicBuffer(_cfg)
-			fp = Path(os.path.join(self.cfg.data_dir, '*.hdf5'))
+			fp = Path(self.cfg.data_dir)
+			fps = list(Path(self.cfg.data_dir).rglob('*.hdf5'))
 		_cfg.steps = _cfg.buffer_size
 		
-		fps = sorted(glob(str(fp)))
+		
 		assert len(fps) > 0, f'No data found at {fp}'
 		print(f'Found {len(fps)} files in {fp}')
-	
+		tasks = TASK_SET[self.cfg.task]
 		for fp in tqdm(fps, desc='Loading data'):
+			task_name = fp.parent.name
+			task_id = tasks.index(task_name)
 			if _cfg.task.startswith("mt"):
 				td = torch.load(fp) 
 				assert td.shape[1] == _cfg.episode_length, \
@@ -73,14 +77,13 @@ class OfflineTrainer(Trainer):
 				assert self.buffer.num_eps == self.buffer.capacity, \
 					f'Buffer has {self.buffer.num_eps} episodes, expected {self.buffer.capacity} episodes.'
 			else:
-				td = self.buffer.load_hdf5(fp)
-				assert td.shape[1] == _cfg.episode_length, \
-					f'Expected episode length {td.shape[1]} to match config episode length {_cfg.episode_length}, ' \
-					f'please double-check your config.'
-				
+				self.buffer.load_hdf5(fp, image_size=self.cfg.image_size, pad_to_shape=115, task_id=task_id)
+				# assert td.shape[1] == _cfg.episode_length, \
+				# 	f'Expected episode length {td.shape[1]} to match config episode length {_cfg.episode_length}, ' \
+				# 	f'please double-check your config.'
 	def train(self):
 		"""Train a TD-MPC2 agent."""
-		assert self.cfg.multitask and self.cfg.task in {'mt30', 'mt80', 'myo10'}, \
+		assert self.cfg.multitask and self.cfg.task in {'mt30', 'mt80', 'myo10', 'myo5-easy', 'myo5-hard'}, \
 			'Offline training only supports multitask training with mt30, mt80, or myo10 task sets.'
 
 		self.load_data()

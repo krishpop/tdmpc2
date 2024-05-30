@@ -2,7 +2,7 @@ defaults:
     - override hydra/launcher: submitit_local
 
 # environment
-task: dog-run
+task: myo5-easy
 obs: state
 
 # evaluation
@@ -10,8 +10,13 @@ checkpoint: ???
 eval_episodes: 10
 eval_freq: 50000
 
+# buffer
+image_size: 64
+use_buffer: true
+hdf5_path: 
+
 # training
-steps: 10_000_000
+steps: 1_000_000
 batch_size: 256
 reward_coef: 0.1
 value_coef: 0.1
