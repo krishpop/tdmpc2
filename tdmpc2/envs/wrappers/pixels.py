@@ -3,6 +3,7 @@ from collections import deque
 import gym
 import numpy as np
 import torch
+from tensordict.tensordict import TensorDict
 
 
 class PixelWrapper(gym.Wrapper):
@@ -39,8 +40,16 @@ class PixelWrapper(gym.Wrapper):
 		return self._get_obs(), reward, done, info
 
 
-class PixelWrapperDict(PixelWrapper):
-	def step(self, action):
-		state, reward, done, info = self.env.step(action)
-		obs = {"state": state, "rgb": self._get_obs()}
-		return obs, reward, done, info
+class PixelWrapperDict(PixelWrapper): 
+	def __init__(self, cfg, env, num_frames=3, render_size=64):
+		super(PixelWrapperDict, self).__init__(cfg, env, num_frames, render_size)
+		self.observation_space = gym.spaces.Dict({
+				"state": self.env.observation_space,
+				"rgb": self.observation_space,
+		})
+
+	def _get_obs(self):
+			state_obs = self.env.reset()
+			rgb_obs = super(PixelWrapperDict, self)._get_obs()
+			obs = TensorDict({"state": state_obs, "rgb": rgb_obs}, batch_size=(1,))
+			return obs
