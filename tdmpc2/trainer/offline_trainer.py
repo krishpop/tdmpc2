@@ -77,7 +77,7 @@ class OfflineTrainer(Trainer):
 				assert self.buffer.num_eps == self.buffer.capacity, \
 					f'Buffer has {self.buffer.num_eps} episodes, expected {self.buffer.capacity} episodes.'
 			else:
-				self.buffer.load_hdf5(fp, render_size=self.cfg.render_size, pad_to_shape=115, task_id=task_id)
+				self.buffer.load_hdf5(fp, render_size=self.cfg.render_size, pad_to_shape=115, task_id=task_id, num_episode_limit=self.cfg.num_episode_limit)
 				# assert td.shape[1] == _cfg.episode_length, \
 				# 	f'Expected episode length {td.shape[1]} to match config episode length {_cfg.episode_length}, ' \
 				# 	f'please double-check your config.'

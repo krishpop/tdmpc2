@@ -171,13 +171,14 @@ class RobomimicBuffer(Buffer):
 
         return self._num_eps
 
-    def load_hdf5(self, path, render_size=64, pad_to_shape=None, task_id=None, image_key='fixed_camera'):
+    def load_hdf5(self, path, render_size=64, pad_to_shape=None, task_id=None, image_key='fixed_camera', num_episode_limit = None):
         transform = transforms.Compose([
                         transforms.ToPILImage(),
                         transforms.Resize((render_size, render_size)),
                         transforms.PILToTensor()
                     ])
         with h5py.File(path, "r") as f:
+            num_episodes_loaded = 0
             for episode_id in range(len(f["data"])):
                 episode_group = f[f"data/demo_{episode_id}"]
                 num_samples = episode_group.attrs["num_samples"]
@@ -205,3 +206,6 @@ class RobomimicBuffer(Buffer):
                 episode_transitions = TensorDict(episode_td, batch_size=(num_samples,))
                 episode_transitions['task'] = torch.ones_like(episode_transitions['reward'], dtype=torch.int64) * task_id
                 self.add(episode_transitions)
+                num_episodes_loaded += 1
+                if num_episode_limit is not None and num_episodes_loaded > num_episode_limit:
+                    break

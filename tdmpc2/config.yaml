@@ -15,6 +15,7 @@ eval_freq: 50000
 # buffer
 use_buffer: true
 hdf5_path: 
+num_episode_limit: 
 
 # training
 steps: 1_000_000
