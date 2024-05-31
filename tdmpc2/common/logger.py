@@ -118,7 +118,7 @@ class Logger:
 		self.entity = cfg.get("wandb_entity", "none")
 		if cfg.disable_wandb or self.project == "none" or self.entity == "none":
 			print(colored("Wandb disabled.", "blue", attrs=["bold"]))
-			cfg.save_agent = False
+			# cfg.save_agent = False
 			cfg.save_video = False
 			self._wandb = None
 			self._video = None

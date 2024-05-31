@@ -13,14 +13,22 @@ class MultitaskWrapper(gym.Wrapper):
 		self.cfg = cfg
 		self.envs = envs
 		self._task = cfg.tasks[0]
-		self._task_idx = 0
-		self._obs_dims = [env.observation_space.shape[0] for env in self.envs]
+		self._task_idx = 0 
+		is_rgb = self.cfg.get("obs", "state") == "rgb"
+		if is_rgb:
+			self._obs_dims = [env.observation_space.shape for env in self.envs]
+		else:
+			self._obs_dims = [env.observation_space.shape[0] for env in self.envs]
 		self._action_dims = [env.action_space.shape[0] for env in self.envs]
 		self._episode_lengths = [env.max_episode_steps for env in self.envs]
-		self._obs_shape = (max(self._obs_dims),)
 		self._action_dim = max(self._action_dims)
-		self.observation_space = gym.spaces.Box(
-			low=-np.inf, high=np.inf, shape=self._obs_shape, dtype=np.float32
+		if is_rgb:
+			self._obs_shape = self._obs_dims[0]
+			self.observation_space = self.envs[0].observation_space
+		else:
+			self._obs_shape = (max(self._obs_dims),)
+			self.observation_space = gym.spaces.Box(
+				low=-np.inf, high=np.inf, shape=self._obs_shape, dtype=np.float32
 		)
 		self.action_space = gym.spaces.Box(
 			low=-1, high=1, shape=(self._action_dim,), dtype=np.float32
@@ -42,7 +50,7 @@ class MultitaskWrapper(gym.Wrapper):
 		return torch.from_numpy(self.action_space.sample().astype(np.float32))
 
 	def _pad_obs(self, obs):
-		if obs.shape != self._obs_shape:
+		if obs.shape != self._obs_shape and not self.cfg.get("obs", "state") == "rgb":
 			obs = torch.cat((obs, torch.zeros(self._obs_shape[0]-obs.shape[0], dtype=obs.dtype, device=obs.device)))
 		return obs
 	

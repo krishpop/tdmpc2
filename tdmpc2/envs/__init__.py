@@ -70,12 +70,18 @@ def make_env(cfg):
 		if env is None:
 			raise ValueError(f'Failed to make environment "{cfg.task}": please verify that dependencies are installed and that the task exists.')
 		env = TensorWrapper(env)
-	if cfg.get('obs', 'state') == 'rgb':
+	if cfg.get('obs', 'state') == 'rgb' and not cfg.multitask:
 		env = PixelWrapper(cfg, env)
-	try: # Dict
-		cfg.obs_shape = {k: v.shape for k, v in env.observation_space.spaces.items()}
-	except: # Box
-		cfg.obs_shape = {cfg.get('obs', 'state'): env.observation_space.shape}
+	if cfg.multitask and cfg.get("obs", "state") == "rgb":
+		try: # Dict
+			cfg.obs_shape = {k: env.envs[0].observation_space.shape for k, v in env.observation_space.spaces.items()}
+		except: # Box
+			cfg.obs_shape = {"rgb": env.envs[0].observation_space.shape}
+	else:
+		try: # Dict
+			cfg.obs_shape = {k: v.shape for k, v in env.observation_space.spaces.items()}
+		except: # Box
+			cfg.obs_shape = {cfg.get('obs', 'state'): env.observation_space.shape}
 	cfg.action_dim = env.action_space.shape[0]
 	cfg.episode_length = env.max_episode_steps
 	cfg.seed_steps = max(1000, 5*cfg.episode_length)

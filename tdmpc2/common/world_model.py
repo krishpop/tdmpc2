@@ -3,6 +3,7 @@ from copy import deepcopy
 import numpy as np
 import torch
 import torch.nn as nn
+from tensordict.tensordict import TensorDict
 
 from common import layers, math, init
 
@@ -21,6 +22,8 @@ class WorldModel(nn.Module):
 			self._action_masks = torch.zeros(len(cfg.tasks), cfg.action_dim)
 			for i in range(len(cfg.tasks)):
 				self._action_masks[i, :cfg.action_dims[i]] = 1.
+			if cfg.obs == "rgb":
+				cfg.obs_shape["rgb"][0] += 1  # stacking task dimension with rgb channels
 		self._encoder = layers.enc(cfg)
 		self._dynamics = layers.mlp(cfg.latent_dim + cfg.action_dim + cfg.task_dim, 2*[cfg.mlp_dim], cfg.latent_dim, act=layers.SimNorm(cfg))
 		self._reward = layers.mlp(cfg.latent_dim + cfg.action_dim + cfg.task_dim, 2*[cfg.mlp_dim], max(cfg.num_bins, 1))
@@ -87,6 +90,9 @@ class WorldModel(nn.Module):
 		if x.ndim == 5:
 			emb = emb.view(1, emb.shape[0], 1, emb.shape[1], 1).repeat(x.shape[0], 1, 1, 1, x.shape[-1])
 			return torch.cat([x, emb], dim=2)
+		elif x.ndim == 4:
+			emb = emb.view(emb.shape[0], 1, emb.shape[1], 1).repeat(1, 1, 1, x.shape[-1])
+			return torch.cat([x, emb], dim=1)
 		elif x.ndim == 3:
 			emb = emb.unsqueeze(0).repeat(x.shape[0], 1, 1)
 		elif emb.shape[0] == 1:
@@ -99,7 +105,8 @@ class WorldModel(nn.Module):
 		This implementation assumes a single state-based observation.
 		"""
 		if self.cfg.multitask:
-			obs = obs[self.cfg.obs]
+			if isinstance(obs, TensorDict):
+				obs = obs[self.cfg.obs]
 			obs = self.task_emb(obs, task)
 		if self.cfg.obs == 'rgb' and obs.ndim == 5:
 			return torch.stack([self._encoder[self.cfg.obs](o) for o in obs])

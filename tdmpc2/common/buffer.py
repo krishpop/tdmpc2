@@ -25,7 +25,7 @@ class Buffer():
             truncated_key=None,
             strict_length=True,
         )
-        self._batch_size = cfg.batch_size * (cfg.horizon+1)
+        self._batch_size = cfg.batch_size * (cfg.horizon+1 + (cfg.num_frames - 1))
         self._num_eps = 0
 
     @property
@@ -84,10 +84,24 @@ class Buffer():
         Prepare a sampled batch for training (post-processing).
         Expects `td` to be a TensorDict with batch size TxB.
         """
+        horizon = self.cfg.horizon + 1
+        num_frames = self.cfg.num_frames
+
         obs = td['obs'] # ['fixed_camera']
-        action = td['action'][1:]
-        reward = td['reward'][1:].unsqueeze(-1)
+        action = td['action'][num_frames:]
+        reward = td['reward'][num_frames:].unsqueeze(-1)
         task = td['task'][0] if 'task' in td.keys() else None
+        if self.cfg.obs == "rgb": 
+            obs_td = {}
+            for k in obs.keys():
+                if k != "rgb":
+                    obs_td[k] = obs[k][num_frames-1:]
+                else:
+                    obs_stack = []
+                    for i in range(horizon):
+                        obs_stack.append(obs[k][i: i + num_frames])
+                    obs_td[k] = torch.stack(obs_stack, dim=1).permute(1, 2, 0, 3, 4, 5).reshape(horizon, self.cfg.batch_size, num_frames * 3, *obs[k].shape[3:])
+            obs = TensorDict(obs_td, batch_size=(horizon, self.cfg.batch_size))
         return self._to_device(obs, action, reward, task)
 
     def add(self, td):
@@ -101,7 +115,7 @@ class Buffer():
 
     def sample(self):
         """Sample a batch of subsequences from the buffer."""
-        td = self._buffer.sample().view(-1, self.cfg.horizon+1).permute(1, 0)
+        td = self._buffer.sample().view(-1, self.cfg.horizon+1+self.cfg.num_frames-1).permute(1, 0)
         return self._prepare_batch(td)
 
 
@@ -157,10 +171,10 @@ class RobomimicBuffer(Buffer):
 
         return self._num_eps
 
-    def load_hdf5(self, path, image_size=64, pad_to_shape=None, task_id=None):
+    def load_hdf5(self, path, render_size=64, pad_to_shape=None, task_id=None, image_key='fixed_camera'):
         transform = transforms.Compose([
                         transforms.ToPILImage(),
-                        transforms.Resize((image_size, image_size)),
+                        transforms.Resize((render_size, render_size)),
                         transforms.PILToTensor()
                     ])
         with h5py.File(path, "r") as f:
@@ -173,7 +187,7 @@ class RobomimicBuffer(Buffer):
                     if isinstance(episode_group[key], h5py.Group):
                         sub_dict = {}
                         for sub_key in episode_group[key].keys():
-                            if sub_key == 'fixed_camera':
+                            if sub_key == image_key:
                                 sub_value = torch.stack([transform(img) for img in episode_group[key][sub_key][:]], dim=0).to(self._device)
                                 if self.cfg.multitask:
                                     sub_key = 'rgb'

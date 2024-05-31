@@ -57,5 +57,6 @@ def parse_cfg(cfg: OmegaConf) -> OmegaConf:
 	else:
 		cfg.task_dim = 0
 	cfg.tasks = TASK_SET.get(cfg.task, [cfg.task])
-
+	if cfg.obs != 'rgb': 
+		cfg.num_frames = 1
 	return cfg
