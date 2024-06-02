@@ -16,7 +16,7 @@ class Buffer():
 
     def __init__(self, cfg):
         self.cfg = cfg
-        self._device = torch.device('cuda')
+        self._device = torch.device(cfg.get("device", "cuda"))
         self._capacity = min(cfg.buffer_size, cfg.steps)
         self._sampler = SliceSampler(
             num_slices=self.cfg.batch_size,
@@ -184,6 +184,9 @@ class RobomimicBuffer(Buffer):
                 num_samples = episode_group.attrs["num_samples"]
                 if num_samples == 0: continue
                 episode_td = {}
+                if len(f[f'data/demo_{episode_id}/obs/vec_obs']) != num_samples:
+                    print(f"skipping demo_{episode_id} because vec_obs length mismatch")
+                    continue
                 for key in episode_group.keys():
                     if isinstance(episode_group[key], h5py.Group):
                         sub_dict = {}
@@ -204,7 +207,8 @@ class RobomimicBuffer(Buffer):
                     else:
                         episode_td[key] = torch.tensor(episode_group[key][:], device=self._device)
                 episode_transitions = TensorDict(episode_td, batch_size=(num_samples,))
-                episode_transitions['task'] = torch.ones_like(episode_transitions['reward'], dtype=torch.int64) * task_id
+                if task_id is not None:
+                    episode_transitions['task'] = torch.ones_like(episode_transitions['reward'], dtype=torch.int64) * task_id
                 self.add(episode_transitions)
                 num_episodes_loaded += 1
                 if num_episode_limit is not None and num_episodes_loaded > num_episode_limit:
