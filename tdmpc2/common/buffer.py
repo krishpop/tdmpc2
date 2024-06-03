@@ -172,11 +172,13 @@ class RobomimicBuffer(Buffer):
         return self._num_eps
 
     def load_hdf5(self, path, render_size=64, pad_to_shape=None, task_id=None, image_key='fixed_camera', num_episode_limit = None):
-        transform = transforms.Compose([
-                        transforms.ToPILImage(),
-                        transforms.Resize((render_size, render_size)),
-                        transforms.PILToTensor()
-                    ])
+        pil_to_tensor = [
+                    transforms.ToPILImage(),
+                    transforms.Resize((render_size, render_size)),
+                    transforms.PILToTensor()
+                ]
+        transform = transforms.Compose(pil_to_tensor)
+
         with h5py.File(path, "r") as f:
             num_episodes_loaded = 0
             for episode_id in range(len(f["data"])):
@@ -191,8 +193,11 @@ class RobomimicBuffer(Buffer):
                     if isinstance(episode_group[key], h5py.Group):
                         sub_dict = {}
                         for sub_key in episode_group[key].keys():
-                            if sub_key == image_key:
-                                sub_value = torch.stack([transform(img) for img in episode_group[key][sub_key][:]], dim=0).to(self._device)
+                            if sub_key == image_key: 
+                                imgs = episode_group[key][sub_key][:]
+                                if imgs.shape[-1] != 3:
+                                    imgs = imgs.transpose(0, 2, 3, 1)
+                                sub_value = torch.stack([transform(img) for img in imgs], dim=0).to(self._device)
                                 if self.cfg.multitask:
                                     sub_key = 'rgb'
                             elif sub_key == 'vec_obs' and pad_to_shape is not None:
