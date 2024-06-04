@@ -54,7 +54,7 @@ class OfflineTrainer(Trainer):
 			fps = sorted(glob(str(fp)))
 		elif _cfg.task.startswith("myo"):
 			_cfg.episode_length = 101
-			_cfg.buffer_size = 50_000
+			_cfg.buffer_size = 505_000
 			self.buffer = RobomimicBuffer(_cfg)
 			fp = Path(self.cfg.data_dir)
 			fps = list(Path(self.cfg.data_dir).rglob('*.hdf5'))
