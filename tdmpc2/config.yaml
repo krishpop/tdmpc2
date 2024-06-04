@@ -1,5 +1,16 @@
 defaults:
-    - override hydra/launcher: submitit_local
+  - override hydra/launcher: slurm_rich
+
+# hydra:
+#   launcher:
+#     account: juno
+#     partition: juno
+#     cpus_per_task: 16
+#     tasks_per_node: 1
+#     mem_gb: 90
+#     gres: gpu:1
+#     timeout_min: 360
+
 
 # environment
 task: myo5-easy
@@ -15,7 +26,7 @@ eval_freq: 50000
 # buffer
 use_buffer: true
 hdf5_path: 
-num_episode_limit: 
+num_episode_limit: 500
 
 # training
 steps: 1_000_000
