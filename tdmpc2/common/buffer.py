@@ -147,6 +147,8 @@ class RobomimicBuffer(Buffer):
                 if isinstance(value, TensorDict):
                     f.create_group(f"data/demo_{episode_id}/{key}")
                     for sub_key, sub_value in value.items():
+                        if len(sub_value.shape) == 4 and sub_value.shape[-1] != 3:
+                            sub_value = sub_value.permute(0, 2, 3, 1)  # Convert (B, C, H, W) to (B, H, W, C)
                         f.create_dataset(f"data/demo_{episode_id}/{key}/{sub_key}", data=sub_value.cpu().numpy())
                 else:
                     f.create_dataset(f"data/demo_{episode_id}/{key}", data=value.cpu().numpy())
