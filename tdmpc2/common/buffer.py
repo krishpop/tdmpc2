@@ -1,9 +1,12 @@
 import h5py
+import json
 import torch
 import torch.nn.functional as F
+from omegaconf import OmegaConf
 from tensordict.tensordict import TensorDict
 from torchrl.data.replay_buffers import ReplayBuffer, LazyTensorStorage
 from torchrl.data.replay_buffers.samplers import SliceSampler
+from envs.myosuite import MYOSUITE_TASKS
 import torchvision.transforms.v2 as transforms
 import numpy as np
 
@@ -134,8 +137,13 @@ class RobomimicBuffer(Buffer):
     def save_hdf5(self, episode_td): 
         episode_id = self._num_eps - 1
         with h5py.File(self.hdf5_path, "a") as f:
+            task_keys = list(MYOSUITE_TASKS.keys())
             if "data" not in f:
                 grp = f.create_group("data")
+                env_kwargs = OmegaConf.to_container(self.cfg, resolve=True)
+                env_kwargs["pad_to_shape"] = (115,)
+                env_args = {"env_name": MYOSUITE_TASKS[self.cfg.task], "type": 4, "env_kwargs": env_kwargs}
+                f["data"].attrs["env_args"] = json.dumps(env_args)                
             else:
                 grp = f["data"]
                 episode_id = len(grp.keys())
@@ -150,6 +158,8 @@ class RobomimicBuffer(Buffer):
                         if len(sub_value.shape) == 4 and sub_value.shape[-1] != 3:
                             sub_value = sub_value.permute(0, 2, 3, 1)  # Convert (B, C, H, W) to (B, H, W, C)
                         f.create_dataset(f"data/demo_{episode_id}/{key}/{sub_key}", data=sub_value.cpu().numpy())
+                    if key == "obs":
+                        f.create_dataset(f"data/demo_{episode_id}/{key}/task_id", data=np.repeat(task_keys.index(self.cfg.task), len(value["vec_obs"])))
                 else:
                     f.create_dataset(f"data/demo_{episode_id}/{key}", data=value.cpu().numpy())
             return len(grp.keys())
