@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-
+import os
 import hydra
 from omegaconf import OmegaConf
 
@@ -35,7 +35,11 @@ def parse_cfg(cfg: OmegaConf) -> OmegaConf:
 			pass
 
 	# Convenience
-	cfg.work_dir = Path(hydra.utils.get_original_cwd()) / 'logs' / cfg.task / str(cfg.seed) / cfg.exp_name
+	if hydra.core.hydra_config.HydraConfig.initialized():
+		wd = hydra.utils.get_original_cwd()
+	else:
+		wd = os.getcwd()
+	cfg.work_dir = Path(wd) / 'logs' / cfg.task / str(cfg.seed) / cfg.exp_name
 	cfg.task_title = cfg.task.replace("-", " ").title()
 	cfg.bin_size = (cfg.vmax - cfg.vmin) / (cfg.num_bins-1) # Bin size for discrete regression
 
