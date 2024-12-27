@@ -139,5 +139,5 @@ TASK_SET = {
         "myo-reach-hard",
     ],
     "myo5-easy": ["myo-key-turn", "myo-obj-hold", "myo-pen-twirl", "myo-pose", "myo-reach"],
-    "myo5-hard": ["myo-key-turn-hard", "myo-obj-hold-hard", "myo-pen-twirl-hard", "myo-pose-hard", "myo-reach-hard"],
+    "myo5-hard": ["myo-key-turn-hard", "myo-obj-hold-hard", "myo-pen-twirl-hard", "myo-pose-hard", "myo-reach-hard"]
 }

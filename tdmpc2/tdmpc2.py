@@ -256,7 +256,8 @@ class TDMPC2(torch.nn.Module):
 		"""
 		action, _ = self.model.pi(next_z, task)
 		discount = self.discount[task].unsqueeze(-1) if self.cfg.multitask else self.discount
-		return reward + discount * self.model.Q(next_z, action, task, return_type='min', target=True)
+		q_values = self.model.Q(next_z, action, task, return_type='min', target=True)
+		return reward + discount * q_values
 
 	def _update(self, obs, action, reward, task=None):
 		# Compute targets

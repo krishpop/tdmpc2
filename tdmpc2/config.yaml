@@ -1,5 +1,5 @@
 defaults:
-  - override hydra/launcher: slurm_rich
+  - override hydra/launcher: submitit_local
 
 # hydra:
 #   launcher:
@@ -15,8 +15,8 @@ defaults:
 # environment
 task: myo5-easy
 obs: state
-num_frames: 3
-render_size: 64
+num_frames: 1
+render_size: 96
 
 # evaluation
 checkpoint: ???
@@ -44,7 +44,7 @@ discount_min: 0.95
 discount_max: 0.995
 buffer_size: 1_000_000
 exp_name: default
-data_dir: ???
+data_dir: /juno/u/bsud2/multi_task_experts/tdmpc2/data/d3il/sorting
 
 # planning
 mpc: true
@@ -80,8 +80,8 @@ dropout: 0.01
 simnorm_dim: 8
 
 # logging
-wandb_project: ???
-wandb_entity: ???
+wandb_project: tdmpc2
+wandb_entity: dmanip-rss
 wandb_silent: false
 enable_wandb: true
 save_csv: true
