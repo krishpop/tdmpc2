@@ -24,9 +24,9 @@ class OfflineTrainer(Trainer):
 		results = dict()
 		ep_rewards, ep_successes = [], []
 		for i in range(self.cfg.eval_episodes):
+			obs, done, ep_reward, t = self.env.reset(), False, 0, 0
 			if self.cfg.save_video:
 				self.logger.video.init(self.env, enabled=(i==0))
-			obs, done, ep_reward, t = self.env.reset(), False, 0, 0
 			while not done:
 				torch.compiler.cudagraph_mark_step_begin()
 				action = self.agent.act(obs, t0=t==0, eval_mode=True)
