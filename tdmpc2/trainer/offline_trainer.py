@@ -37,10 +37,11 @@ class OfflineTrainer(Trainer):
 					self.logger.video.record(self.env)
 			ep_rewards.append(ep_reward)
 			ep_successes.append(info['success'])
+			if self.cfg.save_video:
+				self.logger.video.save(step)
 		results.update({
 			f'episode_reward': np.nanmean(ep_rewards),
 			f'episode_success': np.nanmean(ep_successes),})
-		self.logger.video.save(step)
 		return results
 	
 	def _load_dataset(self):

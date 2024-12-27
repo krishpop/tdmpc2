@@ -13,7 +13,7 @@ defaults:
 
 
 # environment
-task: myo5-easy
+task: d3il-sorting
 obs: state
 num_frames: 1
 render_size: 96
