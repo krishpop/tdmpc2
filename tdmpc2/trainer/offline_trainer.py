@@ -18,7 +18,31 @@ class OfflineTrainer(Trainer):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self._start_time = time()
+		self.obs_min_val = None
+		self.obs_max_val = None
+		self.action_min_val = None
+		self.action_max_val = None
 	
+	def normalize_obs(self, obs):
+		assert self.obs_min_val is not None and self.obs_max_val is not None
+		normalized_obs = ((obs - self.obs_min_val)/(self.obs_max_val - self.obs_min_val)) * 2 - 1
+		return normalized_obs
+
+	def normalize_action(self, action):
+		assert self.action_min_val is not None and self.action_max_val is not None
+		normalized_action = ((action - self.action_min_val)/(self.action_max_val - self.action_min_val)) * 2 - 1
+		return normalized_action
+
+	def unnormalize_obs(self, normalized_obs):
+		assert self.obs_min_val is not None and self.obs_max_val is not None
+		obs = ((normalized_obs + 1)/2) * (self.obs_max_val - self.obs_min_val) + self.obs_min_val
+		return obs
+
+	def unnormalize_action(self, normalized_action):
+		assert self.action_min_val is not None and self.action_max_val is not None
+		action = ((normalized_action + 1)/2) * (self.action_max_val - self.action_min_val) + self.action_min_val
+		return action
+
 	def eval(self, step):
 		"""Evaluate a TD-MPC2 agent."""
 		results = dict()
@@ -29,7 +53,9 @@ class OfflineTrainer(Trainer):
 				self.logger.video.init(self.env, enabled=(i==0))
 			while not done:
 				torch.compiler.cudagraph_mark_step_begin()
+				obs = self.normalize_obs(obs)
 				action = self.agent.act(obs, t0=t==0, eval_mode=True)
+				action = self.unnormalize_action(action)
 				obs, reward, done, info = self.env.step(action)
 				ep_reward += reward
 				t += 1
@@ -78,6 +104,13 @@ class OfflineTrainer(Trainer):
 		# tasks = TASK_SET[self.cfg.task]
 		for fp in tqdm(fps, desc='Loading data'):
 			td = torch.load(fp, weights_only=False)
+			self.obs_min_val, _ = torch.min(td["fields"]["obs"], dim=0)
+			self.obs_max_val, _ = torch.max(td["fields"]["obs"], dim=0)
+			self.action_min_val, _ = torch.min(td["fields"]["action"], dim=0)
+			self.action_max_val, _ = torch.max(td["fields"]["action"], dim=0)
+			# normalize
+			td["fields"]["obs"] = self.normalize_obs(td["fields"]["obs"])
+			td["fields"]["action"] = self.normalize_action(td["fields"]["action"])
 			# assert td.shape[1] == _cfg.episode_length, \
 			# 	f'Expected episode length {td.shape[1]} to match config episode length {_cfg.episode_length}, ' \
 			# 	f'please double-check your config.'
