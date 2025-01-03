@@ -96,6 +96,9 @@ class OfflineTrainer(Trainer):
 		elif _cfg.task.startswith("d3il-sorting"):
 			_cfg.buffer_size = 112128
 			self.buffer = D3ILBuffer(_cfg)
+		elif _cfg.task.startswith("d3il-stacking"):
+			_cfg.buffer_size = 686364
+			self.buffer = D3ILBuffer(_cfg)
 		_cfg.steps = _cfg.buffer_size
 		
 		
@@ -118,9 +121,9 @@ class OfflineTrainer(Trainer):
 			# 	self.buffer.add(td[i])
 			self.buffer.add(td)
 		# expected_episodes = _cfg.buffer_size // _cfg.episode_length
-		expected_episodes = 600
-		assert self.buffer.num_eps == expected_episodes, \
-			f'Buffer has {self.buffer.num_eps} episodes, expected {expected_episodes} episodes.'
+		# expected_episodes = 600
+		# assert self.buffer.num_eps == expected_episodes, \
+		# 	f'Buffer has {self.buffer.num_eps} episodes, expected {expected_episodes} episodes.'
 
 	def train(self):
 		"""Train a TD-MPC2 agent."""

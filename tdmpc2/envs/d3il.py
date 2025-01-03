@@ -1,5 +1,6 @@
 import gymnasium as gym
 import gym_sorting
+import gym_stacking
 import numpy as np
 from gymnasium.spaces import Dict, Box
 
@@ -7,20 +8,38 @@ class D3ILWrapper(gym.Wrapper):
 	def __init__(self, env, cfg):
 		super().__init__(env)
 		self.env = env
+		self.task = cfg.task
 		self.cfg = cfg
 		self.max_episode_steps = env.max_steps_per_episode
-		obs_shape = env.observation_space["agent_pos"].shape
-		self.observation_space = Dict({
-			"state": Box(low=-np.inf, high=np.inf, shape=obs_shape)
-		})
+		state_shape = env.observation_space["agent_pos"].shape
+		if cfg.task == 'd3il-sorting':
+			self.observation_space = Dict({
+				"state": Box(low=-np.inf, high=np.inf, shape=state_shape)
+			})
+		else:
+			env_state_shape = env.observation_space["environment_state"].shape
+			concatenated_shape = (state_shape[0] + env_state_shape[0],)
+			self.observation_space = Dict({
+				"state": Box(low=-np.inf, high=np.inf, shape=concatenated_shape)
+			})
 
 	def reset(self):
-		state = self.env.reset()[0]["agent_pos"]
-		return state
+		obs = self.env.reset()[0]
+		agent_pos = obs["agent_pos"]
+		if self.task == 'd3il-sorting':
+			return agent_pos
+		else:
+			environment_state = obs["environment_state"]
+			return np.concatenate([agent_pos, environment_state])
 
 	def step(self, action):
 		obs, reward, terminated, truncated, info = self.env.step(action.copy())
-		state = obs["agent_pos"]
+		agent_pos = obs["agent_pos"]
+		if self.task == 'd3il-sorting':
+			state = agent_pos
+		else:
+			environment_state = obs["environment_state"]
+			state = np.concatenate([agent_pos, environment_state])
 		info['success'] = info['is_success']
 		return state, reward, terminated or truncated, info
 
@@ -45,6 +64,10 @@ def make_env(cfg):
 	if cfg.task == "d3il-sorting":
 		return D3ILWrapper(
 			gym.make("gym_sorting/sorting-v0", disable_env_checker=True, **kwargs),
+			cfg)
+	elif cfg.task == "d3il-stacking":
+		return D3ILWrapper(
+			gym.make("gym_stacking/stacking-v0", disable_env_checker=True, **kwargs),
 			cfg)
 	else:
 		raise ValueError('Unknown task:', cfg.task)
