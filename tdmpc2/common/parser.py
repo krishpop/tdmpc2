@@ -5,6 +5,7 @@ from typing import Any
 
 import hydra
 from omegaconf import OmegaConf
+import os
 
 from common import MODEL_SIZE, TASK_SET
 
