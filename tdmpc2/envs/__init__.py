@@ -68,7 +68,7 @@ def make_env(cfg):
 	for fn in [make_dm_control_env, make_maniskill_env, make_metaworld_env, make_myosuite_env, make_d3il_env]:
 		try:
 			env = fn(cfg)
-		except ValueError as e:
+		except Exception as e:
 			if fn == make_d3il_env:
 				print(e)
 			pass

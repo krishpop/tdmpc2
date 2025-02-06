@@ -12,7 +12,7 @@ class D3ILWrapper(gym.Wrapper):
 		self.cfg = cfg
 		self.max_episode_steps = env.max_steps_per_episode
 		state_shape = env.observation_space["agent_pos"].shape
-		if cfg.task == 'd3il-sorting':
+		if 'd3il-sorting' in cfg.task:
 			self.observation_space = Dict({
 				"state": Box(low=-np.inf, high=np.inf, shape=state_shape)
 			})
@@ -26,7 +26,7 @@ class D3ILWrapper(gym.Wrapper):
 	def reset(self):
 		obs = self.env.reset()[0]
 		agent_pos = obs["agent_pos"]
-		if self.task == 'd3il-sorting':
+		if 'd3il-sorting' in self.task:
 			return agent_pos
 		else:
 			environment_state = obs["environment_state"]
@@ -35,7 +35,7 @@ class D3ILWrapper(gym.Wrapper):
 	def step(self, action):
 		obs, reward, terminated, truncated, info = self.env.step(action.copy())
 		agent_pos = obs["agent_pos"]
-		if self.task == 'd3il-sorting':
+		if 'd3il-sorting' in self.task:
 			state = agent_pos
 		else:
 			environment_state = obs["environment_state"]
@@ -61,7 +61,7 @@ def make_env(cfg):
 		"render": False,
 		"self_start": True
 	}
-	if cfg.task == "d3il-sorting":
+	if "d3il-sorting" in cfg.task:
 		return D3ILWrapper(
 			gym.make("gym_sorting/sorting-v0", disable_env_checker=True, **kwargs),
 			cfg)

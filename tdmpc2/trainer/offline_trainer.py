@@ -93,6 +93,9 @@ class OfflineTrainer(Trainer):
 			self.buffer = RobomimicBuffer(_cfg)
 			fp = Path(self.cfg.data_dir)
 			fps = list(Path(self.cfg.data_dir).rglob('*.hdf5'))
+		elif _cfg.task.startswith("d3il-sorting-suboptimal-demos"):
+			_cfg.buffer_size = 341343
+			self.buffer = D3ILBuffer(_cfg)
 		elif _cfg.task.startswith("d3il-sorting"):
 			_cfg.buffer_size = 112128
 			self.buffer = D3ILBuffer(_cfg)
