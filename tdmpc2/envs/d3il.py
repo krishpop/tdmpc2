@@ -1,6 +1,7 @@
 import gymnasium as gym
 import gym_sorting
 import gym_stacking
+import gym_pusht
 import numpy as np
 from gymnasium.spaces import Dict, Box
 
@@ -10,7 +11,10 @@ class D3ILWrapper(gym.Wrapper):
 		self.env = env
 		self.task = cfg.task
 		self.cfg = cfg
-		self.max_episode_steps = env.max_steps_per_episode
+		if 'd3il' in cfg.task:
+			self.max_episode_steps = env.max_steps_per_episode
+		else:
+			self.max_episode_steps = 300
 		state_shape = env.observation_space["agent_pos"].shape
 		if 'd3il-sorting' in cfg.task:
 			self.observation_space = Dict({
@@ -69,5 +73,13 @@ def make_env(cfg):
 		return D3ILWrapper(
 			gym.make("gym_stacking/stacking-v0", disable_env_checker=True, **kwargs),
 			cfg)
+	elif "pusht" in cfg.task:
+		kwargs = {
+			"obs_type": "environment_state_agent_pos"
+		}
+		return D3ILWrapper(
+			gym.make("gym_pusht/PushT-v0", disable_env_checker=True, **kwargs),
+			cfg
+		)
 	else:
 		raise ValueError('Unknown task:', cfg.task)

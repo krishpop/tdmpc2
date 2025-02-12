@@ -96,6 +96,9 @@ class OfflineTrainer(Trainer):
 		elif _cfg.task.startswith("d3il-sorting-suboptimal-demos"):
 			_cfg.buffer_size = 341343
 			self.buffer = D3ILBuffer(_cfg)
+		elif _cfg.task.startswith("pusht-suboptimal-demos"):
+			_cfg.buffer_size = 48949
+			self.buffer = D3ILBuffer(_cfg)
 		elif _cfg.task.startswith("d3il-sorting"):
 			_cfg.buffer_size = 112128
 			self.buffer = D3ILBuffer(_cfg)
